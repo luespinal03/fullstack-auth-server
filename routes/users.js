@@ -54,8 +54,6 @@ router.post('/login', async (req, res, next) => {
     const email = req.body.email;
     const password = req.body.password;
 
-    const hashedUserPassword = user.password;
-    const userEmail = user.email;
 
     // looking for a specific user based on email input by user
     // *************
@@ -63,14 +61,16 @@ router.post('/login', async (req, res, next) => {
       email,
     });
     // *************
+    console.log(user)
+    const hashedUserPassword = user.password;
 
-    const userMatch = await bcrypt.compare(email, userEmail);
+
 
     // bcrypt compare takes two arguments, the first is the input plain text password and the second is the hashed password that is being stored on the user document. The compare function returns a boolean which will be true of the passwords match and false if they do not.
     const passwordMatch = await bcrypt.compare(password, hashedUserPassword);
 
     // comparing email in database to email input by user. If its not there then render the message below. Otherwise; return.
-    if (!userMatch) {
+    if (!user) {
       // The input password is incorrect
       res.json({
         success: false,
@@ -95,7 +95,6 @@ router.post('/login', async (req, res, next) => {
       date: new Date(),
       userId: user.id,
       scope: userType,
-
     }
 
     const exp = Math.floor(Date.now() / 1000) + (60 * 60);
@@ -105,7 +104,7 @@ router.post('/login', async (req, res, next) => {
       // numerical value in seconds of 24 hours in the future
       exp: exp,
     }
-
+    // Use the jwt.sign method to create a new JSON Web Token and assign that value to a variable called token. jwt.sign takes two arguments, the first is the payload object you just created (with userData and exp), the second is the JWT_SECRET_KEY environment variable that you should access from process.env. 
     const jwtSecretKey = process.env.JWT_SECRET_KEY;
 
     const token = jwt.sign(payload, jwtSecretKey);
@@ -113,6 +112,54 @@ router.post('/login', async (req, res, next) => {
     res.json({
       success: true, token, email
     });
+
+  }
+  catch (err) {
+    res.json({
+      success: false,
+      error: err.toString()
+    })
+  }
+})
+
+
+router.get('/message', async (req, res, next) => {
+  try {
+    const tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
+    const token = req.header(tokenHeaderKey);
+
+
+    const jwtSecretKey = process.env.JWT_SECRET_KEY;
+    const verified = jwt.verify(token, jwtSecretKey);
+    console.log(verified)
+
+    // userData here is grabbing userData from verified. verified is currently holding the userData from the token that was generated when logging in. Thus attaching logging in information to that specific token
+    const userData = verified.userData;
+
+
+    if (!verified) {
+      res.json({
+        success: false,
+        message: "ID Token could not be verified",
+      });
+      return;
+    }
+
+    if (userData && userData.scope === 'user') {
+      res.json({
+        success: true,
+        message: "I am a normal user",
+      });
+      return;
+    }
+
+    if (userData && userData.scope === 'admin') {
+      res.json({
+        success: true,
+        message: "I am an admin user",
+      });
+      return;
+    }
 
   }
   catch (err) {
