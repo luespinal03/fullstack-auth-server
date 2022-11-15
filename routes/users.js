@@ -58,9 +58,11 @@ router.post('/login', async (req, res, next) => {
     const userEmail = user.email;
 
     // looking for a specific user based on email input by user
+    // *************
     const user = await db().collection("users").findOne({
       email,
     });
+    // *************
 
     const userMatch = await bcrypt.compare(email, userEmail);
 
@@ -68,7 +70,7 @@ router.post('/login', async (req, res, next) => {
     const passwordMatch = await bcrypt.compare(password, hashedUserPassword);
 
     // comparing email in database to email input by user. If its not there then render the message below. Otherwise; return.
-    if (userMatch === false) {
+    if (!userMatch) {
       // The input password is incorrect
       res.json({
         success: false,
@@ -78,7 +80,7 @@ router.post('/login', async (req, res, next) => {
     }
 
     // comparing password in database to password input by user. If passwords don't match render the message below. Otherwise; return.
-    if (passwordMatch === false) {
+    if (!passwordMatch) {
       // The input password is incorrect
       res.json({
         success: false,
@@ -87,17 +89,31 @@ router.post('/login', async (req, res, next) => {
       return;
     }
 
-    const adminHandler = () => {
-      user.email.includes('codeimmersives.com') ? userData.scope = "admin" : userData.scope = "user"
-    }
-
+    const userType = email.includes('codeimmersives.com') ? "admin" : "user";
 
     const userData = {
       date: new Date(),
       userId: user.id,
-      scope: { adminHandler },
+      scope: userType,
 
     }
+
+    const exp = Math.floor(Date.now() / 1000) + (60 * 60);
+
+    const payload = {
+      userData: userData,
+      // numerical value in seconds of 24 hours in the future
+      exp: exp,
+    }
+
+    const jwtSecretKey = process.env.JWT_SECRET_KEY;
+
+    const token = jwt.sign(payload, jwtSecretKey);
+
+    res.json({
+      success: true, token, email
+    });
+
   }
   catch (err) {
     res.json({
