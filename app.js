@@ -20,7 +20,7 @@ var app = express();
 app.use(cors());
 app.options("*", cors());
 
-var app = express();
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

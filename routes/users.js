@@ -49,6 +49,8 @@ router.post('/register', async (req, res, next) => {
 })
 
 
+
+// logging in route
 router.post('/login', async (req, res, next) => {
   try {
     const email = req.body.email;
@@ -123,12 +125,13 @@ router.post('/login', async (req, res, next) => {
 })
 
 
+
+
+// this route is in charge of letting us know if user is an admin or normal user
 router.get('/message', async (req, res, next) => {
   try {
     const tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
     const token = req.header(tokenHeaderKey);
-
-
     const jwtSecretKey = process.env.JWT_SECRET_KEY;
     const verified = jwt.verify(token, jwtSecretKey);
     console.log(verified)
@@ -145,7 +148,7 @@ router.get('/message', async (req, res, next) => {
       return;
     }
 
-    if (userData && userData.scope === 'user') {
+    if (userData.scope === 'user') {
       res.json({
         success: true,
         message: "I am a normal user",
@@ -153,7 +156,7 @@ router.get('/message', async (req, res, next) => {
       return;
     }
 
-    if (userData && userData.scope === 'admin') {
+    if (userData.scope === 'admin') {
       res.json({
         success: true,
         message: "I am an admin user",
@@ -161,12 +164,13 @@ router.get('/message', async (req, res, next) => {
       return;
     }
 
+    throw Error("Access Denied");
   }
   catch (err) {
-    res.json({
-      success: false,
-      error: err.toString()
-    })
+
+    // 401 status means access denied
+    return res.status(401).json({ success: false, message: err })
+
   }
 })
 
